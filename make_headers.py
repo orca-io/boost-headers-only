@@ -29,7 +29,7 @@ def _generate_headers(ver: str, verbose: bool):
     # download gzipped tarball
     # location of tarballs can also be found at https://www.boost.org/users/download/
     archive_name = f'boost_{BOOST_VER_UND}'
-    url = f'https://boostorg.jfrog.io/artifactory/main/release/{BOOST_VER_DOT}/source/{archive_name}.tar.gz'
+    url = f'https://archives.boost.io/release/{BOOST_VER_DOT}/source/{archive_name}.tar.gz'
     t0 = time()
     with urllib.request.urlopen(url) as response:
         logger.info(f'Starting download of BOOST {BOOST_VER_DOT} source distribution')
