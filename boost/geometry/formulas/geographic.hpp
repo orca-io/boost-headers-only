@@ -1,6 +1,6 @@
 // Boost.Geometry
 
-// Copyright (c) 2016-2017, Oracle and/or its affiliates.
+// Copyright (c) 2016-2021, Oracle and/or its affiliates.
 // Contributed and/or modified by Adam Wulkiewicz, on behalf of Oracle
 
 // Use, modification and distribution is subject to the Boost Software License,
@@ -29,13 +29,13 @@
 #include <boost/geometry/util/select_coordinate_type.hpp>
 
 namespace boost { namespace geometry {
-    
+
 namespace formula {
 
 template <typename Point3d, typename PointGeo, typename Spheroid>
 inline Point3d geo_to_cart3d(PointGeo const& point_geo, Spheroid const& spheroid)
 {
-    typedef typename coordinate_type<Point3d>::type calc_t;
+    using calc_t = coordinate_type_t<Point3d>;
 
     calc_t const c1 = 1;
     calc_t const e_sqr = eccentricity_sqr<calc_t>(spheroid);
@@ -61,7 +61,7 @@ inline Point3d geo_to_cart3d(PointGeo const& point_geo, Spheroid const& spheroid
 template <typename PointGeo, typename Spheroid, typename Point3d>
 inline void geo_to_cart3d(PointGeo const& point_geo, Point3d & result, Point3d & north, Point3d & east, Spheroid const& spheroid)
 {
-    typedef typename coordinate_type<Point3d>::type calc_t;
+    using calc_t = coordinate_type_t<Point3d>;
 
     calc_t const c1 = 1;
     calc_t const e_sqr = eccentricity_sqr<calc_t>(spheroid);
@@ -94,8 +94,8 @@ inline void geo_to_cart3d(PointGeo const& point_geo, Point3d & result, Point3d &
 template <typename PointGeo, typename Point3d, typename Spheroid>
 inline PointGeo cart3d_to_geo(Point3d const& point_3d, Spheroid const& spheroid)
 {
-    typedef typename coordinate_type<PointGeo>::type coord_t;
-    typedef typename coordinate_type<Point3d>::type calc_t;
+    using coord_t = coordinate_type_t<PointGeo>;
+    using calc_t = coordinate_type_t<Point3d>;
 
     calc_t const c1 = 1;
     //calc_t const c2 = 2;
@@ -107,11 +107,11 @@ inline PointGeo cart3d_to_geo(Point3d const& point_3d, Spheroid const& spheroid)
     calc_t const xy_l = math::sqrt(math::sqr(x) + math::sqr(y));
 
     calc_t const lonr = atan2(y, x);
-    
+
     // NOTE: Alternative version
     // http://www.iag-aig.org/attach/989c8e501d9c5b5e2736955baf2632f5/V60N2_5FT.pdf
     // calc_t const lonr = c2 * atan2(y, x + xy_l);
-    
+
     calc_t const latr = atan2(z, (c1 - e_sqr) * xy_l);
 
     // NOTE: If h is equal to 0 then there is no need to improve value of latitude
@@ -128,7 +128,7 @@ inline PointGeo cart3d_to_geo(Point3d const& point_3d, Spheroid const& spheroid)
 
     math::normalize_spheroidal_coordinates
         <
-            typename coordinate_system<PointGeo>::type::units,
+            geometry::detail::coordinate_system_units_t<PointGeo>,
             coord_t
         >(lon, lat);
 
@@ -141,8 +141,8 @@ inline PointGeo cart3d_to_geo(Point3d const& point_3d, Spheroid const& spheroid)
 template <typename Point3d, typename Spheroid>
 inline Point3d projected_to_xy(Point3d const& point_3d, Spheroid const& spheroid)
 {
-    typedef typename coordinate_type<Point3d>::type coord_t;    
-    
+    using coord_t = coordinate_type_t<Point3d>;
+
     // len_xy = sqrt(x^2 + y^2)
     // r = len_xy - |z / tan(lat)|
     // assuming h = 0
@@ -151,7 +151,7 @@ inline Point3d projected_to_xy(Point3d const& point_3d, Spheroid const& spheroid
     // r = e^2 * len_xy
     // x_res = r * cos(lon) = e^2 * len_xy * x / len_xy = e^2 * x
     // y_res = r * sin(lon) = e^2 * len_xy * y / len_xy = e^2 * y
-    
+
     coord_t const c0 = 0;
     coord_t const e_sqr = formula::eccentricity_sqr<coord_t>(spheroid);
 
@@ -167,7 +167,7 @@ inline Point3d projected_to_xy(Point3d const& point_3d, Spheroid const& spheroid
 template <typename Point3d, typename Spheroid>
 inline Point3d projected_to_surface(Point3d const& direction, Spheroid const& spheroid)
 {
-    typedef typename coordinate_type<Point3d>::type coord_t;
+    using coord_t = coordinate_type_t<Point3d>;
 
     //coord_t const c0 = 0;
     coord_t const c2 = 2;
@@ -178,7 +178,7 @@ inline Point3d projected_to_surface(Point3d const& direction, Spheroid const& sp
     //(x*x+y*y)/(a*a) + z*z/(b*b) = 1
     // x = d.x * t
     // y = d.y * t
-    // z = d.z * t        
+    // z = d.z * t
     coord_t const dx = get<0>(direction);
     coord_t const dy = get<1>(direction);
     coord_t const dz = get<2>(direction);
@@ -202,9 +202,11 @@ inline Point3d projected_to_surface(Point3d const& direction, Spheroid const& sp
 }
 
 template <typename Point3d, typename Spheroid>
-inline bool projected_to_surface(Point3d const& origin, Point3d const& direction, Point3d & result1, Point3d & result2, Spheroid const& spheroid)
+inline bool projected_to_surface(Point3d const& origin, Point3d const& direction,
+                                 Point3d & result1, Point3d & result2,
+                                 Spheroid const& spheroid)
 {
-    typedef typename coordinate_type<Point3d>::type coord_t;
+    using coord_t = coordinate_type_t<Point3d>;
 
     coord_t const c0 = 0;
     coord_t const c1 = 1;
@@ -215,7 +217,7 @@ inline bool projected_to_surface(Point3d const& origin, Point3d const& direction
     //(x*x+y*y)/(a*a) + z*z/(b*b) = 1
     // x = o.x + d.x * t
     // y = o.y + d.y * t
-    // z = o.z + d.z * t        
+    // z = o.z + d.z * t
     coord_t const ox = get<0>(origin);
     coord_t const oy = get<1>(origin);
     coord_t const oz = get<2>(origin);
@@ -247,14 +249,12 @@ inline bool projected_to_surface(Point3d const& origin, Point3d const& direction
     coord_t const two_a = c2 * param_a;
 
     coord_t const t1 = (-param_b + sqrt_delta) / two_a;
-    result1 = direction;
-    multiply_value(result1, t1);
-    add_point(result1, origin);
-
     coord_t const t2 = (-param_b - sqrt_delta) / two_a;
-    result2 = direction;
-    multiply_value(result2, t2);
-    add_point(result2, origin);
+    geometry::detail::for_each_dimension<Point3d>([&](auto index)
+    {
+        set<index>(result1, get<index>(origin) + get<index>(direction) * t1);
+        set<index>(result2, get<index>(origin) + get<index>(direction) * t2);
+    });
 
     return true;
 }
@@ -265,7 +265,7 @@ inline bool great_elliptic_intersection(Point3d const& a1, Point3d const& a2,
                                         Point3d & result,
                                         Spheroid const& spheroid)
 {
-    typedef typename coordinate_type<Point3d>::type coord_t;
+    using coord_t = coordinate_type_t<Point3d>;
 
     coord_t c0 = 0;
     coord_t c1 = 1;
@@ -308,7 +308,7 @@ inline bool great_elliptic_intersection(Point3d const& a1, Point3d const& a2,
 template <typename Point3d1, typename Point3d2>
 static inline int elliptic_side_value(Point3d1 const& origin, Point3d1 const& norm, Point3d2 const& pt)
 {
-    typedef typename coordinate_type<Point3d1>::type calc_t;
+    using calc_t = coordinate_type_t<Point3d1>;
     calc_t c0 = 0;
 
     // vector oposite to pt - origin
@@ -330,7 +330,7 @@ inline bool planes_spheroid_intersection(Point3d const& o1, Point3d const& n1,
                                          Point3d & ip1, Point3d & ip2,
                                          Spheroid const& spheroid)
 {
-    typedef typename coordinate_type<Point3d>::type coord_t;
+    using coord_t = coordinate_type_t<Point3d>;
 
     coord_t c0 = 0;
     coord_t c1 = 1;
@@ -360,12 +360,11 @@ inline bool planes_spheroid_intersection(Point3d const& o1, Point3d const& n1,
     coord_t C2 = (h2 - h1 * dot_n1_n2) / denom;
 
     // C1 * n1 + C2 * n2
-    Point3d C1_n1 = n1;
-    multiply_value(C1_n1, C1);
-    Point3d C2_n2 = n2;
-    multiply_value(C2_n2, C2);
-    Point3d io = C1_n1;
-    add_point(io, C2_n2);
+    Point3d io;
+    geometry::detail::for_each_dimension<Point3d>([&](auto index)
+    {
+        set<index>(io, C1 * get<index>(n1) + C2 * get<index>(n2));
+    });
 
     if (! projected_to_surface(io, id, ip1, ip2, spheroid))
     {
@@ -382,22 +381,22 @@ inline void experimental_elliptic_plane(Point3d const& p1, Point3d const& p2,
                                         Point3d & origin, Point3d & normal,
                                         Spheroid const& spheroid)
 {
-    typedef typename coordinate_type<Point3d>::type coord_t;
+    using coord_t = coordinate_type_t<Point3d>;
 
     Point3d xy1 = projected_to_xy(p1, spheroid);
     Point3d xy2 = projected_to_xy(p2, spheroid);
 
     // origin = (xy1 + xy2) / 2
-    origin = xy1;
-    add_point(origin, xy2);
-    multiply_value(origin, coord_t(0.5));
-
     // v1 = p1 - origin
-    v1 = p1;
-    subtract_point(v1, origin);
     // v2 = p2 - origin
-    v2 = p2;
-    subtract_point(v2, origin);
+    coord_t const half = coord_t(0.5);
+    geometry::detail::for_each_dimension<Point3d>([&](auto index)
+    {
+        coord_t const o = (get<index>(xy1) + get<index>(xy2)) * half;
+        set<index>(origin, o);
+        set<index>(v1, get<index>(p1) - o);
+        set<index>(v2, get<index>(p1) - o);
+    });
 
     normal = cross_product(v1, v2);
 }
@@ -417,7 +416,7 @@ inline bool experimental_elliptic_intersection(Point3d const& a1, Point3d const&
                                                Point3d & result,
                                                Spheroid const& spheroid)
 {
-    typedef typename coordinate_type<Point3d>::type coord_t;
+    using coord_t = coordinate_type_t<Point3d>;
 
     coord_t c0 = 0;
     coord_t c1 = 1;
@@ -427,7 +426,7 @@ inline bool experimental_elliptic_intersection(Point3d const& a1, Point3d const&
     Point3d b1v, b2v, o2, n2;
     experimental_elliptic_plane(b1, b2, b1v, b2v, o2, n2, spheroid);
 
-    if (! detail::vec_normalize(n1) || ! detail::vec_normalize(n2))
+    if (! geometry::detail::vec_normalize(n1) || ! geometry::detail::vec_normalize(n2))
     {
         return false;
     }

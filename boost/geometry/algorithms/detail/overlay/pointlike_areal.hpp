@@ -1,7 +1,7 @@
 // Boost.Geometry (aka GGL, Generic Geometry Library)
 
-// Copyright (c) 2020, Oracle and/or its affiliates.
-
+// Copyright (c) 2020-2024, Oracle and/or its affiliates.
+// Contributed and/or modified by Vissarion Fysikopoulos, on behalf of Oracle
 // Contributed and/or modified by Adam Wulkiewicz, on behalf of Oracle
 
 // Licensed under the Boost Software License version 1.0.
@@ -63,44 +63,68 @@ template
 class multipoint_multipolygon_point
 {
 private:
-    template <typename ExpandPointStrategy>
+    template <typename Strategy>
     struct expand_box_point
     {
+        explicit expand_box_point(Strategy const& strategy)
+            : m_strategy(strategy)
+        {}
+
         template <typename Box, typename Point>
-        static inline void apply(Box& total, Point const& point)
+        inline void apply(Box& total, Point const& point) const
         {
-            geometry::expand(total, point, ExpandPointStrategy());
+            geometry::expand(total, point, m_strategy);
         }
+
+        Strategy const& m_strategy;
     };
 
-    template <typename ExpandBoxStrategy>
+    template <typename Strategy>
     struct expand_box_boxpair
     {
+        explicit expand_box_boxpair(Strategy const& strategy)
+            : m_strategy(strategy)
+        {}
+
         template <typename Box1, typename Box2, typename SizeT>
-        static inline void apply(Box1& total, std::pair<Box2, SizeT> const& box_pair)
+        inline void apply(Box1& total, std::pair<Box2, SizeT> const& box_pair) const
         {
-            geometry::expand(total, box_pair.first, ExpandBoxStrategy());
+            geometry::expand(total, box_pair.first, m_strategy);
         }
+
+        Strategy const& m_strategy;
     };
 
-    template <typename DisjointPointBoxStrategy>
+    template <typename Strategy>
     struct overlaps_box_point
     {
+        explicit overlaps_box_point(Strategy const& strategy)
+            : m_strategy(strategy)
+        {}
+
         template <typename Box, typename Point>
-        static inline bool apply(Box const& box, Point const& point)
+        inline bool apply(Box const& box, Point const& point) const
         {
-            return ! geometry::disjoint(point, box, DisjointPointBoxStrategy());
+            return ! geometry::disjoint(point, box, m_strategy);
         }
+
+        Strategy const& m_strategy;
     };
 
-    template <typename DisjointBoxBoxStrategy>
+    template <typename Strategy>
     struct overlaps_box_boxpair
     {
+        explicit overlaps_box_boxpair(Strategy const& strategy)
+            : m_strategy(strategy)
+        {}
+
         template <typename Box1, typename Box2, typename SizeT>
-        static inline bool apply(Box1 const& box, std::pair<Box2, SizeT> const& box_pair)
+        inline bool apply(Box1 const& box, std::pair<Box2, SizeT> const& box_pair) const
         {
-            return ! geometry::disjoint(box, box_pair.first, DisjointBoxBoxStrategy());
+            return ! geometry::disjoint(box, box_pair.first, m_strategy);
         }
+
+        Strategy const& m_strategy;
     };
 
     template <typename OutputIterator, typename Strategy>
@@ -133,14 +157,14 @@ private:
 
     private:
         MultiPolygon const& m_multipolygon;
-        OutputIterator& m_oit;        
+        OutputIterator& m_oit;
         Strategy const& m_strategy;
     };
 
-    template <typename Iterator, typename Box, typename SizeT, typename EnvelopeStrategy>
+    template <typename Iterator, typename Box, typename SizeT, typename Strategy>
     static inline void fill_box_pairs(Iterator first, Iterator last,
                                       std::vector<std::pair<Box, SizeT> > & box_pairs,
-                                      EnvelopeStrategy const& strategy)
+                                      Strategy const& strategy)
     {
         SizeT index = 0;
         for (; first != last; ++first, ++index)
@@ -159,58 +183,44 @@ private:
     {
         item_visitor_type<OutputIterator, Strategy> item_visitor(multipolygon, oit, strategy);
 
-        typedef geometry::model::point
+        using point_type = geometry::model::point
             <
-                typename geometry::coordinate_type<MultiPoint>::type,
+                geometry::coordinate_type_t<MultiPoint>,
                 geometry::dimension<MultiPoint>::value,
-                typename geometry::coordinate_system<MultiPoint>::type
-            > point_type;
-        typedef geometry::model::box<point_type> box_type;
-        typedef std::pair<box_type, std::size_t> box_pair;
+                geometry::coordinate_system_t<MultiPoint>
+            >;
+        using box_type = geometry::model::box<point_type>;
+        using box_pair = std::pair<box_type, std::size_t>;
         std::vector<box_pair> box_pairs;
         box_pairs.reserve(boost::size(multipolygon));
 
         fill_box_pairs(boost::begin(multipolygon),
                        boost::end(multipolygon),
-                       box_pairs,
-                       strategy.get_envelope_strategy());
-
-        // TEMP - envelope umbrella strategy also contains
-        //        expand strategies
-        using expand_box_strategy_type = decltype(
-            strategies::envelope::services::strategy_converter
-                <
-                    typename Strategy::envelope_strategy_type
-                >::get(strategy.get_envelope_strategy())
-                    .expand(std::declval<box_type>(), std::declval<box_type>()));
-        typedef typename Strategy::disjoint_box_box_strategy_type disjoint_box_box_strategy_type;
-        typedef typename Strategy::disjoint_point_box_strategy_type disjoint_point_box_strategy_type;
-        typedef typename Strategy::expand_point_strategy_type expand_point_strategy_type;
+                       box_pairs, strategy);
 
         geometry::partition
             <
                 box_type
             >::apply(multipoint, box_pairs, item_visitor,
-                     expand_box_point<expand_point_strategy_type>(),
-                     overlaps_box_point<disjoint_point_box_strategy_type>(),
-                     expand_box_boxpair<expand_box_strategy_type>(),
-                     overlaps_box_boxpair<disjoint_box_box_strategy_type>());
+                     expand_box_point<Strategy>(strategy),
+                     overlaps_box_point<Strategy>(strategy),
+                     expand_box_boxpair<Strategy>(strategy),
+                     overlaps_box_boxpair<Strategy>(strategy));
 
         return oit;
     }
 
 public:
-    template <typename RobustPolicy, typename OutputIterator, typename Strategy>
+    template <typename OutputIterator, typename Strategy>
     static inline OutputIterator apply(MultiPoint const& multipoint,
                                        MultiPolygon const& multipolygon,
-                                       RobustPolicy const& robust_policy,
                                        OutputIterator oit,
                                        Strategy const& strategy)
     {
-        typedef std::vector
+        using point_vector_type = std::vector
             <
                 typename boost::range_value<MultiPoint>::type
-            > point_vector_type;
+            >;
 
         point_vector_type common_points;
 
@@ -222,7 +232,7 @@ public:
         return multipoint_multipoint_point
             <
                 MultiPoint, point_vector_type, PointOut, OverlayType
-            >::apply(multipoint, common_points, robust_policy, oit, strategy);
+            >::apply(multipoint, common_points, oit, strategy);
     }
 };
 

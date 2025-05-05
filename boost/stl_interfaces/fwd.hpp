@@ -6,18 +6,25 @@
 #ifndef BOOST_STL_INTERFACES_FWD_HPP
 #define BOOST_STL_INTERFACES_FWD_HPP
 
-#include <iterator>
+#include <boost/stl_interfaces/config.hpp>
+
+#if BOOST_STL_INTERFACES_USE_CONCEPTS
+#include <ranges>
+#endif
+#if defined(__cpp_lib_three_way_comparison)
+#include <compare>
+#endif
 
 #ifndef BOOST_STL_INTERFACES_DOXYGEN
 
-#if defined(_MSC_VER) || defined(__GNUC__) && __GNUC__ < 8
+#if defined(_MSC_VER) || defined(BOOST_GCC) && __GNUC__ < 8
 #define BOOST_STL_INTERFACES_NO_HIDDEN_FRIEND_CONSTEXPR
 #define BOOST_STL_INTERFACES_HIDDEN_FRIEND_CONSTEXPR
 #else
 #define BOOST_STL_INTERFACES_HIDDEN_FRIEND_CONSTEXPR constexpr
 #endif
 
-#if defined(__GNUC__) && __GNUC__ < 9
+#if defined(BOOST_GCC) && __GNUC__ < 9
 #define BOOST_STL_INTERFACES_CONCEPT concept bool
 #else
 #define BOOST_STL_INTERFACES_CONCEPT concept
@@ -27,15 +34,16 @@
 
 
 namespace boost { namespace stl_interfaces {
-    inline namespace v1 {
 
-        /** An enumeration used to indicate whether the underlying data have a
-            contiguous or discontiguous layout when instantiating
-            `view_interface` and `sequence_container_interface`. */
-        enum class element_layout : bool {
-            discontiguous = false,
-            contiguous = true
-        };
+    /** An enumeration used to indicate whether the underlying data have a
+        contiguous or discontiguous layout when instantiating `view_interface`
+        and `sequence_container_interface`. */
+    enum class element_layout : bool {
+        discontiguous = false,
+        contiguous = true
+    };
+
+    BOOST_STL_INTERFACES_NAMESPACE_V1 {
 
         namespace v1_dtl {
             template<typename... T>

@@ -2,8 +2,9 @@
 
 // Copyright (c) 2012-2014 Barend Gehrels, Amsterdam, the Netherlands.
 
-// This file was modified by Oracle on 2017-2020.
-// Modifications copyright (c) 2017-2020, Oracle and/or its affiliates.
+// This file was modified by Oracle on 2017-2024.
+// Modifications copyright (c) 2017-2024, Oracle and/or its affiliates.
+// Contributed and/or modified by Vissarion Fysikopoulos, on behalf of Oracle
 // Contributed and/or modified by Adam Wulkiewicz, on behalf of Oracle
 
 // Use, modification and distribution is subject to the Boost Software License,
@@ -38,7 +39,7 @@ namespace detail { namespace buffer
 class backtrack_for_buffer
 {
 public :
-    typedef detail::overlay::backtrack_state state_type;
+    using state_type = detail::overlay::backtrack_state;
 
     template
         <
@@ -47,7 +48,6 @@ public :
             typename Turns,
             typename Geometry,
             typename Strategy,
-            typename RobustPolicy,
             typename Visitor
         >
     static inline void apply(std::size_t size_at_start,
@@ -59,7 +59,6 @@ public :
                 Geometry const& ,
                 Geometry const& ,
                 Strategy const& ,
-                RobustPolicy const& ,
                 state_type& state,
                 Visitor& /*visitor*/
                 )
@@ -88,20 +87,6 @@ g_backtrack_warning_count++;
 struct buffer_overlay_visitor
 {
 public :
-    void print(char const* /*header*/)
-    {
-    }
-
-    template <typename Turns>
-    void print(char const* /*header*/, Turns const& /*turns*/, int /*turn_index*/)
-    {
-    }
-
-    template <typename Turns>
-    void print(char const* /*header*/, Turns const& /*turns*/, int /*turn_index*/, int /*op_index*/)
-    {
-    }
-
     template <typename Turns>
     void visit_turns(int , Turns const& ) {}
 
@@ -131,11 +116,11 @@ struct buffer_turn_operation
     : public detail::overlay::traversal_turn_operation<Point, SegmentRatio>
 {
     signed_size_type piece_index;
-    signed_size_type index_in_robust_ring;
+    signed_size_type index_in_ring;
 
     inline buffer_turn_operation()
         : piece_index(-1)
-        , index_in_robust_ring(-1)
+        , index_in_ring(-1)
     {}
 };
 
@@ -149,7 +134,7 @@ struct buffer_turn_info
             buffer_turn_operation<Point, SegmentRatio>
         >
 {
-    typedef Point point_type;
+    using point_type = Point;
 
     std::size_t turn_index;
 
@@ -158,7 +143,6 @@ struct buffer_turn_info
     // or (for deflate) if there are not enough points to traverse it.
     bool is_turn_traversable;
 
-    bool close_to_offset;
     bool is_linear_end_point;
     bool within_original;
     signed_size_type count_in_original; // increased by +1 for in ext.ring, -1 for int.ring
@@ -166,57 +150,43 @@ struct buffer_turn_info
     inline buffer_turn_info()
         : turn_index(0)
         , is_turn_traversable(true)
-        , close_to_offset(false)
         , is_linear_end_point(false)
         , within_original(false)
         , count_in_original(0)
     {}
 };
 
-struct buffer_less
-{
-    template <typename Indexed>
-    inline bool operator()(Indexed const& left, Indexed const& right) const
-    {
-        if (! (left.subject->seg_id == right.subject->seg_id))
-        {
-            return left.subject->seg_id < right.subject->seg_id;
-        }
-
-        // Both left and right are located on the SAME segment.
-        if (! (left.subject->fraction == right.subject->fraction))
-        {
-            return left.subject->fraction < right.subject->fraction;
-        }
-
-        return left.turn_index < right.turn_index;
-    }
-};
-
+template <typename Strategy>
 struct piece_get_box
 {
+    explicit piece_get_box(Strategy const& strategy)
+        : m_strategy(strategy)
+    {}
+
     template <typename Box, typename Piece>
-    static inline void apply(Box& total, Piece const& piece)
+    inline void apply(Box& total, Piece const& piece) const
     {
         assert_coordinate_type_equal(total, piece.m_piece_border.m_envelope);
-        typedef typename strategy::expand::services::default_strategy
-            <
-                box_tag, typename cs_tag<Box>::type
-            >::type expand_strategy_type;
 
         if (piece.m_piece_border.m_has_envelope)
         {
             geometry::expand(total, piece.m_piece_border.m_envelope,
-                             expand_strategy_type());
+                             m_strategy);
         }
     }
+
+    Strategy const& m_strategy;
 };
 
-template <typename DisjointBoxBoxStrategy>
+template <typename Strategy>
 struct piece_overlaps_box
 {
+    explicit piece_overlaps_box(Strategy const& strategy)
+        : m_strategy(strategy)
+    {}
+
     template <typename Box, typename Piece>
-    static inline bool apply(Box const& box, Piece const& piece)
+    inline bool apply(Box const& box, Piece const& piece) const
     {
         assert_coordinate_type_equal(box, piece.m_piece_border.m_envelope);
 
@@ -235,44 +205,45 @@ struct piece_overlaps_box
         }
 
         return ! geometry::detail::disjoint::disjoint_box_box(box, piece.m_piece_border.m_envelope,
-                                                              DisjointBoxBoxStrategy());
+                                                              m_strategy);
     }
+
+    Strategy const& m_strategy;
 };
 
+template <typename Strategy>
 struct turn_get_box
 {
+    explicit turn_get_box(Strategy const& strategy)
+        : m_strategy(strategy)
+    {}
+
     template <typename Box, typename Turn>
-    static inline void apply(Box& total, Turn const& turn)
+    inline void apply(Box& total, Turn const& turn) const
     {
-        typedef typename strategy::expand::services::default_strategy
-            <
-                point_tag, typename cs_tag<Box>::type
-            >::type expand_strategy_type;
         assert_coordinate_type_equal(total, turn.point);
-        geometry::expand(total, turn.point, expand_strategy_type());
+        geometry::expand(total, turn.point, m_strategy);
     }
+
+    Strategy const& m_strategy;
 };
 
-template <typename DisjointPointBoxStrategy>
+template <typename Strategy>
 struct turn_overlaps_box
 {
+    explicit turn_overlaps_box(Strategy const& strategy)
+        : m_strategy(strategy)
+    {}
+
     template <typename Box, typename Turn>
-    static inline bool apply(Box const& box, Turn const& turn)
+    inline bool apply(Box const& box, Turn const& turn) const
     {
         assert_coordinate_type_equal(turn.point, box);
         return ! geometry::detail::disjoint::disjoint_point_box(turn.point, box,
-                                                                DisjointPointBoxStrategy());
+                                                                m_strategy);
     }
-};
 
-struct enriched_map_buffer_include_policy
-{
-    template <typename Operation>
-    static inline bool include(Operation const& op)
-    {
-        return op != detail::overlay::operation_intersection
-            && op != detail::overlay::operation_blocked;
-    }
+    Strategy const& m_strategy;
 };
 
 }} // namespace detail::buffer

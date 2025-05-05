@@ -1,6 +1,7 @@
 // Boost.Geometry (aka GGL, Generic Geometry Library)
 
 // Copyright (c) 2007-2012 Barend Gehrels, Amsterdam, the Netherlands.
+// Copyright (c) 2023 Adam Wulkiewicz, Lodz, Poland.
 
 // Use, modification and distribution is subject to the Boost Software License,
 // Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
@@ -10,7 +11,7 @@
 #define BOOST_GEOMETRY_ALGORITHMS_DETAIL_OVERLAY_TURN_INFO_HPP
 
 
-#include <boost/array.hpp>
+#include <array>
 
 #include <boost/geometry/core/coordinate_type.hpp>
 #include <boost/geometry/algorithms/detail/signed_size_type.hpp>
@@ -50,13 +51,13 @@ enum method_type
 template <typename Point, typename SegmentRatio>
 struct turn_operation
 {
-    typedef SegmentRatio segment_ratio_type;
+    using segment_ratio_type = SegmentRatio;
 
     operation_type operation;
     segment_identifier seg_id;
-    SegmentRatio fraction;
+    segment_ratio_type fraction;
 
-    typedef typename coordinate_type<Point>::type comparable_distance_type;
+    using comparable_distance_type = coordinate_type_t<Point>;
     comparable_distance_type remaining_distance;
 
     inline turn_operation()
@@ -78,16 +79,16 @@ struct turn_operation
 template
 <
     typename Point,
-    typename SegmentRatio = geometry::segment_ratio<typename coordinate_type<Point>::type>,
+    typename SegmentRatio = geometry::segment_ratio<coordinate_type_t<Point>>,
     typename Operation = turn_operation<Point, SegmentRatio>,
-    typename Container = boost::array<Operation, 2>
+    typename Container = std::array<Operation, 2>
 >
 struct turn_info
 {
-    typedef Point point_type;
-    typedef SegmentRatio segment_ratio_type;
-    typedef Operation turn_operation_type;
-    typedef Container container_type;
+    using point_type = Point;
+    using segment_ratio_type = SegmentRatio;
+    using turn_operation_type = Operation;
+    using container_type = Container;
 
     Point point;
     method_type method;
@@ -137,6 +138,11 @@ struct turn_info
     inline bool is_clustered() const
     {
         return cluster_id > 0;
+    }
+    inline bool is_self() const
+    {
+        return operations[0].seg_id.source_index
+                == operations[1].seg_id.source_index;
     }
 
 private :

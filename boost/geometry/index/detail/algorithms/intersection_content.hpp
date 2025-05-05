@@ -4,8 +4,9 @@
 //
 // Copyright (c) 2011-2018 Adam Wulkiewicz, Lodz, Poland.
 //
-// This file was modified by Oracle on 2019.
-// Modifications copyright (c) 2019 Oracle and/or its affiliates.
+// This file was modified by Oracle on 2019-2024.
+// Modifications copyright (c) 2019-2024 Oracle and/or its affiliates.
+// Contributed and/or modified by Vissarion Fysikopoulos, on behalf of Oracle
 // Contributed and/or modified by Adam Wulkiewicz, on behalf of Oracle
 //
 // Use, modification and distribution is subject to the Boost Software License,
@@ -16,18 +17,20 @@
 #define BOOST_GEOMETRY_INDEX_DETAIL_ALGORITHMS_INTERSECTION_CONTENT_HPP
 
 #include <boost/geometry/algorithms/detail/disjoint/box_box.hpp>
-#include <boost/geometry/algorithms/detail/overlay/intersection_box_box.hpp>
+#include <boost/geometry/algorithms/detail/intersection/box_box_implementation.hpp>
 
 #include <boost/geometry/index/detail/algorithms/content.hpp>
+
+#include <boost/geometry/strategies/default_strategy.hpp>
+#include <boost/geometry/strategies/disjoint.hpp>
 
 namespace boost { namespace geometry { namespace index { namespace detail {
 
 // Util to distinguish between default and non-default index strategy
 template <typename Box, typename Strategy>
-inline bool disjoint_box_box(Box const& box1, Box const& box2, Strategy const&)
+inline bool disjoint_box_box(Box const& box1, Box const& box2, Strategy const& s)
 {
-    return geometry::detail::disjoint::disjoint_box_box(box1, box2,
-                typename Strategy::disjoint_box_box_strategy_type());
+    return geometry::detail::disjoint::disjoint_box_box(box1, box2, s);
 }
 
 template <typename Box>
@@ -55,7 +58,7 @@ inline typename default_content_result<Box>::type intersection_content(Box const
         bool const ok = geometry::detail::intersection::intersection_box_box
                             <
                                 0, geometry::dimension<Box>::value
-                            >::apply(box1, box2, 0, box_intersection, 0);
+                            >::apply(box1, box2, box_intersection, 0);
         if ( ok )
         {
             return index::detail::content(box_intersection);

@@ -13,14 +13,16 @@
 #ifndef __BOOST_SORT_PARALLEL_DETAIL_PARALLEL_STABLE_SORT_HPP
 #define __BOOST_SORT_PARALLEL_DETAIL_PARALLEL_STABLE_SORT_HPP
 
-#include <boost/sort/sample_sort/sample_sort.hpp>
-#include <boost/sort/common/util/traits.hpp>
+#include <ciso646>
 #include <functional>
 #include <future>
 #include <iterator>
 #include <memory>
 #include <type_traits>
 #include <vector>
+#include <boost/sort/sample_sort/sample_sort.hpp>
+#include <boost/sort/common/util/traits.hpp>
+
 
 namespace boost
 {
@@ -86,7 +88,7 @@ struct parallel_stable_sort
     //-----------------------------------------------------------------------------
     void destroy_all()
     {
-        if (ptr != nullptr) std::return_temporary_buffer(ptr);
+        if (ptr != nullptr) std::free (ptr);
     };
     //
     //-----------------------------------------------------------------------------
@@ -148,14 +150,17 @@ parallel_stable_sort <Iter_t, Compare>
          it2 != last and (sw = comp(*it2, *it1)); it1 = it2++);
     if (sw)
     {
+	using std::swap;
         size_t nelem2 = nelem >> 1;
         Iter_t it1 = first, it2 = last - 1;
         for (size_t i = 0; i < nelem2; ++i)
-            std::swap(*(it1++), *(it2--));
+            swap(*(it1++), *(it2--));
         return;
     };
 
-    ptr = std::get_temporary_buffer<value_t>(nptr).first;
+    ptr = reinterpret_cast <value_t*> 
+				(std::malloc (nptr * sizeof(value_t)));
+    
     if (ptr == nullptr) throw std::bad_alloc();
 
     //---------------------------------------------------------------------
@@ -189,13 +194,17 @@ parallel_stable_sort <Iter_t, Compare>
         throw std::bad_alloc();
     };
 
-    range_buffer = move_forward(range_buffer, range_first);
+    range_buffer = move_construct(range_buffer, range_first);
     range_initial = merge_half(range_initial, range_buffer, range_second, comp);
-}; // end of constructor
+    destroy (range_buffer);
+
+
+    
+} // end of constructor
 
 //
 //****************************************************************************
-};//    End namespace stable_detail
+}//    End namespace stable_detail
 //****************************************************************************
 //
 
@@ -228,7 +237,7 @@ void parallel_stable_sort(Iter_t first, Iter_t last)
 {
     typedef bscu::compare_iter<Iter_t> Compare;
     stable_detail::parallel_stable_sort<Iter_t, Compare>(first, last);
-};
+}
 //
 //-----------------------------------------------------------------------------
 //  function : parallel_stable_sort
@@ -245,7 +254,7 @@ void parallel_stable_sort(Iter_t first, Iter_t last, uint32_t nthread)
 {
     typedef bscu::compare_iter<Iter_t> Compare;
     stable_detail::parallel_stable_sort<Iter_t, Compare>(first, last, nthread);
-};
+}
 //
 //-----------------------------------------------------------------------------
 //  function : parallel_stable_sort
@@ -262,7 +271,7 @@ template <class Iter_t, class Compare,
 void parallel_stable_sort(Iter_t first, Iter_t last, Compare comp)
 {
     stable_detail::parallel_stable_sort<Iter_t, Compare>(first, last, comp);
-};
+}
 
 //
 //-----------------------------------------------------------------------------
@@ -285,8 +294,8 @@ void parallel_stable_sort (Iter_t first, Iter_t last, Compare comp,
 }
 //
 //****************************************************************************
-};//    End namespace sort
-};//    End namespace boost
+}//    End namespace sort
+}//    End namespace boost
 //****************************************************************************
 //
 #endif

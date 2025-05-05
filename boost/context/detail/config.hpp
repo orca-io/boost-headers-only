@@ -30,6 +30,10 @@
 # define BOOST_CONTEXT_DECL
 #endif
 
+#if ! defined(BOOST_USE_UCONTEXT) && defined(__CYGWIN__)
+# define BOOST_USE_UCONTEXT
+#endif
+
 #if ! defined(BOOST_CONTEXT_SOURCE) && ! defined(BOOST_ALL_NO_LIB) && ! defined(BOOST_CONTEXT_NO_LIB)
 # define BOOST_LIB_NAME boost_context
 # if defined(BOOST_ALL_DYN_LINK) || defined(BOOST_CONTEXT_DYN_LINK)
@@ -92,7 +96,7 @@
     defined(BOOST_NO_CXX11_UNIFIED_INITIALISATION_SYNTAX) || \
     defined(BOOST_NO_CXX11_VARIADIC_TEMPLATES) || \
     defined(BOOST_NO_HDR_ATOMIC) || \
-    defined(BOOST_NO_HDR_TUPLE) 
+    defined(BOOST_NO_HDR_TUPLE)
 # define BOOST_CONTEXT_NO_CXX11
 #endif
 

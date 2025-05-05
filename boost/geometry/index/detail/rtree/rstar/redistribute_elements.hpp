@@ -2,7 +2,7 @@
 //
 // R-tree R*-tree split algorithm implementation
 //
-// Copyright (c) 2011-2017 Adam Wulkiewicz, Lodz, Poland.
+// Copyright (c) 2011-2022 Adam Wulkiewicz, Lodz, Poland.
 //
 // This file was modified by Oracle on 2019-2020.
 // Modifications copyright (c) 2019-2020 Oracle and/or its affiliates.
@@ -55,11 +55,10 @@ public:
 
     bool operator()(Element const& e1, Element const& e2) const
     {
-        bounded_view_type bounded_ind1(rtree::element_indexable(e1, m_tr), m_strategy);
-        bounded_view_type bounded_ind2(rtree::element_indexable(e2, m_tr), m_strategy);
-
-        return geometry::get<Corner, AxisIndex>(bounded_ind1)
-            < geometry::get<Corner, AxisIndex>(bounded_ind2);
+        indexable_type const& ind1 = rtree::element_indexable(e1, m_tr);
+        indexable_type const& ind2 = rtree::element_indexable(e2, m_tr);
+        return geometry::get<Corner, AxisIndex>(bounded_view_type(ind1, m_strategy))
+            < geometry::get<Corner, AxisIndex>(bounded_view_type(ind2, m_strategy));
     }
 
 private:
@@ -122,9 +121,9 @@ struct choose_split_axis_and_index_for_corner
                              Parameters const& parameters,
                              Translator const& translator)
     {
-        typedef typename Elements::value_type element_type;
-        typedef typename rtree::element_indexable_type<element_type, Translator>::type indexable_type;
-        typedef typename tag<indexable_type>::type indexable_tag;
+        using element_type = typename Elements::value_type;
+        using indexable_type = typename rtree::element_indexable_type<element_type, Translator>::type;
+        using indexable_tag = tag_t<indexable_type>;
 
         BOOST_GEOMETRY_INDEX_ASSERT(elements.size() == parameters.get_max_elements() + 1, "wrong number of elements");
 
@@ -133,7 +132,7 @@ struct choose_split_axis_and_index_for_corner
 
         // copy elements
         Elements elements_copy(elements);                                                                       // MAY THROW, STRONG (alloc, copy)
-        
+
         size_t const index_first = parameters.get_min_elements();
         size_t const index_last = parameters.get_max_elements() - parameters.get_min_elements() + 2;
 
@@ -168,7 +167,7 @@ struct choose_split_axis_and_index_for_corner
                                                 translator, strategy);
             Box box2 = rtree::elements_box<Box>(elements_copy.begin() + i, elements_copy.end(),
                                                 translator, strategy);
-            
+
             sum_of_margins += index::detail::comparable_margin(box1) + index::detail::comparable_margin(box2);
 
             content_type ovl = index::detail::intersection_content(box1, box2, strategy);
@@ -307,13 +306,15 @@ struct choose_split_axis_and_index
         content_type overlap_val = (std::numeric_limits<content_type>::max)();
         content_type content_val = (std::numeric_limits<content_type>::max)();
 
-        choose_split_axis_and_index_for_axis<
-            Box,
-            Dimension - 1,
-            typename tag<element_indexable_type>::type
-        >::apply(elements, corner, index, sum_of_margins, overlap_val, content_val, parameters, translator); // MAY THROW, STRONG
+        choose_split_axis_and_index_for_axis
+            <
+                Box,
+                Dimension - 1,
+                tag_t<element_indexable_type>
+            >::apply(elements, corner, index, sum_of_margins, overlap_val, content_val, 
+                     parameters, translator); // MAY THROW, STRONG
 
-        if ( sum_of_margins < smallest_sum_of_margins )
+        if (sum_of_margins < smallest_sum_of_margins)
         {
             choosen_axis = Dimension - 1;
             choosen_corner = corner;
@@ -342,15 +343,17 @@ struct choose_split_axis_and_index<Box, 1>
                              Parameters const& parameters,
                              Translator const& translator)
     {
-        typedef typename rtree::element_indexable_type<typename Elements::value_type, Translator>::type element_indexable_type;
+        using element_indexable_type = typename rtree::element_indexable_type<typename Elements::value_type, Translator>::type;
 
         choosen_axis = 0;
 
-        choose_split_axis_and_index_for_axis<
-            Box,
-            0,
-            typename tag<element_indexable_type>::type
-        >::apply(elements, choosen_corner, choosen_index, smallest_sum_of_margins, smallest_overlap, smallest_content, parameters, translator); // MAY THROW
+        choose_split_axis_and_index_for_axis
+            <
+                Box,
+                0,
+                tag_t<element_indexable_type>
+            >::apply(elements, choosen_corner, choosen_index, smallest_sum_of_margins,
+                     smallest_overlap, smallest_content, parameters, translator); // MAY THROW
     }
 };
 
@@ -372,9 +375,9 @@ struct nth_element
         }
         else
         {
-            typedef typename Elements::value_type element_type;
-            typedef typename rtree::element_indexable_type<element_type, Translator>::type indexable_type;
-            typedef typename tag<indexable_type>::type indexable_tag;
+            using element_type = typename Elements::value_type;
+            using indexable_type = typename rtree::element_indexable_type<element_type, Translator>::type;
+            using indexable_tag = tag_t<indexable_type>;
 
             typename index::detail::strategy_type<Parameters>::type
                 strategy = index::detail::get_strategy(parameters);
@@ -428,7 +431,7 @@ struct redistribute_elements<MembersHolder, rstar_tag>
     {
         typedef typename rtree::elements_type<Node>::type elements_type;
         typedef typename elements_type::value_type element_type;
-        
+
         elements_type & elements1 = rtree::elements(n);
         elements_type & elements2 = rtree::elements(second_node);
 

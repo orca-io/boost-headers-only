@@ -86,7 +86,7 @@ struct BOOST_CONTEXT_DECL fiber_activation_record {
         fiber = ::ConvertThreadToFiber( nullptr);
         if ( BOOST_UNLIKELY( nullptr == fiber) ) {
             BOOST_ASSERT( ERROR_ALREADY_FIBER == ::GetLastError());
-            fiber = ::GetCurrentFiber(); 
+            fiber = ::GetCurrentFiber();
             BOOST_ASSERT( nullptr != fiber);
             BOOST_ASSERT( reinterpret_cast< LPVOID >( 0x1E00) != fiber);
         }
@@ -96,7 +96,7 @@ struct BOOST_CONTEXT_DECL fiber_activation_record {
     fiber_activation_record( stack_context sctx_) noexcept :
         sctx{ sctx_ },
         main_ctx{ false } {
-    } 
+    }
 
     virtual ~fiber_activation_record() {
         if ( BOOST_UNLIKELY( main_ctx) ) {
@@ -185,19 +185,10 @@ struct BOOST_CONTEXT_DECL fiber_activation_record_initializer {
 
 struct forced_unwind {
     fiber_activation_record  *  from{ nullptr };
-#ifndef BOOST_ASSERT_IS_VOID
-    bool                        caught{ false };
-#endif
 
     explicit forced_unwind( fiber_activation_record * from_) :
         from{ from_ } {
     }
-
-#ifndef BOOST_ASSERT_IS_VOID
-    ~forced_unwind() {
-        BOOST_ASSERT( caught);
-    }
-#endif
 };
 
 template< typename Ctx, typename StackAlloc, typename Fn >
@@ -235,12 +226,9 @@ public:
             c = boost::context::detail::invoke( fn_, std::move( c) );
 #else
             c = std::invoke( fn_, std::move( c) );
-#endif  
+#endif
         } catch ( forced_unwind const& ex) {
             c = Ctx{ ex.from };
-#ifndef BOOST_ASSERT_IS_VOID
-            const_cast< forced_unwind & >( ex).caught = true;
-#endif
         }
         // this context has finished its task
         from = nullptr;
@@ -272,7 +260,7 @@ static fiber_activation_record * create_fiber1( StackAlloc && salloc, Fn && fn) 
 
 template< typename Ctx, typename StackAlloc, typename Fn >
 static fiber_activation_record * create_fiber2( preallocated palloc, StackAlloc && salloc, Fn && fn) {
-    typedef fiber_capture_record< Ctx, StackAlloc, Fn >  capture_t; 
+    typedef fiber_capture_record< Ctx, StackAlloc, Fn >  capture_t;
 
     BOOST_ASSERT( ( sizeof( capture_t) ) < palloc.size);
     // reserve space for control structure
@@ -301,14 +289,6 @@ private:
 
     template< typename Ctx, typename StackAlloc, typename Fn >
     friend detail::fiber_activation_record * detail::create_fiber2( preallocated, StackAlloc &&, Fn &&);
-
-    template< typename StackAlloc, typename Fn >
-    friend fiber
-    callcc( std::allocator_arg_t, StackAlloc &&, Fn &&);
-
-    template< typename StackAlloc, typename Fn >
-    friend fiber
-    callcc( std::allocator_arg_t, preallocated, StackAlloc &&, Fn &&);
 
     detail::fiber_activation_record   *   ptr_{ nullptr };
 
@@ -410,9 +390,9 @@ public:
     bool operator<( fiber const& other) const noexcept {
         return ptr_ < other.ptr_;
     }
-    
+
     #if !defined(BOOST_EMBTC)
-    
+
     template< typename charT, class traitsT >
     friend std::basic_ostream< charT, traitsT > &
     operator<<( std::basic_ostream< charT, traitsT > & os, fiber const& other) {
@@ -424,7 +404,7 @@ public:
     }
 
     #else
-    
+
     template< typename charT, class traitsT >
     friend std::basic_ostream< charT, traitsT > &
     operator<<( std::basic_ostream< charT, traitsT > & os, fiber const& other);

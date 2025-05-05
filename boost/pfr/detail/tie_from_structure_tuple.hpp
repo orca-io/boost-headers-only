@@ -1,5 +1,5 @@
 // Copyright (c) 2018 Adam Butcher, Antony Polukhin
-// Copyright (c) 2019-2020 Antony Polukhin
+// Copyright (c) 2019-2025 Antony Polukhin
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -16,7 +16,11 @@
 #include <boost/pfr/tuple_size.hpp>
 #include <boost/pfr/detail/make_integer_sequence.hpp>
 
+#ifdef BOOST_PFR_HAS_STD_MODULE
+import std;
+#else
 #include <tuple>
+#endif
 
 namespace boost { namespace pfr { namespace detail {
 
@@ -39,6 +43,6 @@ struct tie_from_structure_tuple : std::tuple<Elements&...> {
     }
 };
 
-}}} // boost::pfr::detail
+}}} // namespace boost::pfr::detail
 
 #endif // BOOST_PFR_DETAIL_TIE_FROM_STRUCTURE_TUPLE_HPP

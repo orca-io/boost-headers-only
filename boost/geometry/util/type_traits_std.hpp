@@ -1,7 +1,8 @@
 // Boost.Geometry
 
-// Copyright (c) 2020, Oracle and/or its affiliates.
+// Copyright (c) 2024 Adam Wulkiewicz, Lodz, Poland.
 
+// Copyright (c) 2020, Oracle and/or its affiliates.
 // Contributed and/or modified by Adam Wulkiewicz, on behalf of Oracle
 
 // Licensed under the Boost Software License version 1.0.
@@ -54,6 +55,7 @@ struct conjunction<Trait, Traits...>
     : std::conditional_t<Trait::value, conjunction<Traits...>, Trait>
 {};
 
+
 // C++17
 template <typename ...>
 struct disjunction
@@ -67,6 +69,7 @@ template <typename Trait, typename ...Traits>
 struct disjunction<Trait, Traits...>
     : std::conditional_t<Trait::value, Trait, disjunction<Traits...>>
 {};
+
 
 // C++17
 template <typename Trait>
@@ -138,6 +141,40 @@ template <typename From, typename To>
 using transcribe_const_t = typename transcribe_const<From, To>::type;
 
 
+// non-standard
+template <typename From, typename To>
+struct transcribe_reference
+{
+    using type = std::remove_reference_t<To>;
+};
+
+template <typename From, typename To>
+struct transcribe_reference<From &, To>
+{
+    using type = std::remove_reference_t<To> &;
+};
+
+template <typename From, typename To>
+struct transcribe_reference<From &&, To>
+{
+    using type = std::remove_reference_t<To> &&;
+};
+
+template <typename From, typename To>
+using transcribe_reference_t = typename transcribe_reference<From, To>::type;
+
+
+// non-standard
+template <typename From, typename To>
+struct transcribe_cref
+{
+    using type = transcribe_reference_t<From, transcribe_const_t<From, To>>;
+};
+
+template <typename From, typename To>
+using transcribe_cref_t = typename transcribe_cref<From, To>::type;
+
+
 } // namespace util
 
 
@@ -161,22 +198,21 @@ using transcribe_const_t = typename transcribe_const<From, To>::type;
     \endcode
 */
 template <bool IsConst, typename Type>
-struct add_const_if_c
-{
-    typedef std::conditional_t
+struct [[deprecated("Use util::transcribe_const<> instead.")]] add_const_if_c
+    : std::conditional
         <
             IsConst,
             Type const,
             Type
-        > type;
-};
+        >
+{};
 
 
 namespace util
 {
 
 template <typename T>
-using bare_type = remove_cptrref<T>;
+using bare_type [[deprecated("Use util::remove_cptrref<> instead.")]] = remove_cptrref<T>;
 
 } // namespace util
 

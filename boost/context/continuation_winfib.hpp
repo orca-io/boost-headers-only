@@ -87,7 +87,7 @@ struct BOOST_CONTEXT_DECL activation_record {
         if ( BOOST_UNLIKELY( nullptr == fiber) ) {
             DWORD err = ::GetLastError();
             BOOST_ASSERT( ERROR_ALREADY_FIBER == err);
-            fiber = ::GetCurrentFiber(); 
+            fiber = ::GetCurrentFiber();
             BOOST_ASSERT( nullptr != fiber);
             BOOST_ASSERT( reinterpret_cast< LPVOID >( 0x1E00) != fiber);
         }
@@ -97,7 +97,7 @@ struct BOOST_CONTEXT_DECL activation_record {
     activation_record( stack_context sctx_) noexcept :
         sctx{ sctx_ },
         main_ctx{ false } {
-    } 
+    }
 
     virtual ~activation_record() {
         if ( BOOST_UNLIKELY( main_ctx) ) {
@@ -186,19 +186,10 @@ struct BOOST_CONTEXT_DECL activation_record_initializer {
 
 struct forced_unwind {
     activation_record   *   from{ nullptr };
-#ifndef BOOST_ASSERT_IS_VOID
-    bool                    caught{ false };
-#endif
 
     explicit forced_unwind( activation_record * from_) :
         from{ from_ } {
     }
-
-#ifndef BOOST_ASSERT_IS_VOID
-    ~forced_unwind() {
-        BOOST_ASSERT( caught);
-    }
-#endif
 };
 
 template< typename Ctx, typename StackAlloc, typename Fn >
@@ -236,12 +227,9 @@ public:
             c = boost::context::detail::invoke( fn_, std::move( c) );
 #else
             c = std::invoke( fn_, std::move( c) );
-#endif  
+#endif
         } catch ( forced_unwind const& ex) {
             c = Ctx{ ex.from };
-#ifndef BOOST_ASSERT_IS_VOID
-            const_cast< forced_unwind & >( ex).caught = true;
-#endif
         }
         // this context has finished its task
         from = nullptr;
@@ -273,7 +261,7 @@ static activation_record * create_context1( StackAlloc && salloc, Fn && fn) {
 
 template< typename Ctx, typename StackAlloc, typename Fn >
 static activation_record * create_context2( preallocated palloc, StackAlloc && salloc, Fn && fn) {
-    typedef capture_record< Ctx, StackAlloc, Fn >  capture_t; 
+    typedef capture_record< Ctx, StackAlloc, Fn >  capture_t;
 
     BOOST_ASSERT( ( sizeof( capture_t) ) < palloc.size);
     // reserve space for control structure
@@ -399,9 +387,9 @@ public:
     bool operator<( continuation const& other) const noexcept {
         return ptr_ < other.ptr_;
     }
-    
+
     #if !defined(BOOST_EMBTC)
-    
+
     template< typename charT, class traitsT >
     friend std::basic_ostream< charT, traitsT > &
     operator<<( std::basic_ostream< charT, traitsT > & os, continuation const& other) {
@@ -413,7 +401,7 @@ public:
     }
 
     #else
-    
+
     template< typename charT, class traitsT >
     friend std::basic_ostream< charT, traitsT > &
     operator<<( std::basic_ostream< charT, traitsT > & os, continuation const& other);
@@ -438,7 +426,7 @@ public:
     }
 
 #endif
-    
+
 template<
     typename Fn,
     typename = detail::disable_overload< continuation, Fn >

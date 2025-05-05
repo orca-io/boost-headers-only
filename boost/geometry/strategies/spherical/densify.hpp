@@ -1,6 +1,6 @@
 // Boost.Geometry
 
-// Copyright (c) 2017-2019, Oracle and/or its affiliates.
+// Copyright (c) 2017-2021, Oracle and/or its affiliates.
 
 // Contributed and/or modified by Vissarion Fysikopoulos, on behalf of Oracle
 // Contributed and/or modified by Adam Wulkiewicz, on behalf of Oracle
@@ -58,6 +58,11 @@ template
 class spherical
 {
 public:
+    typedef typename strategy_detail::get_radius
+        <
+            RadiusTypeOrSphere
+        >::type radius_type;
+
     // For consistency with area strategy the radius is set to 1
     inline spherical()
         : m_radius(1.0)
@@ -74,13 +79,13 @@ public:
     template <typename Point, typename AssignPolicy, typename T>
     inline void apply(Point const& p0, Point const& p1, AssignPolicy & policy, T const& length_threshold) const
     {
-        typedef typename AssignPolicy::point_type out_point_t;
-        typedef typename select_most_precise
+        using out_point_t = typename AssignPolicy::point_type;
+        using calc_t = typename select_most_precise
             <
-                typename coordinate_type<Point>::type,
-                typename coordinate_type<out_point_t>::type,
+                coordinate_type_t<Point>,
+                coordinate_type_t<out_point_t>,
                 CalculationType
-            >::type calc_t;
+            >::type;
 
         calc_t angle01;
 
@@ -113,11 +118,13 @@ public:
         }
     }
 
+    inline radius_type radius() const
+    {
+        return m_radius;
+    }
+
 private:
-    typename strategy_detail::get_radius
-        <
-            RadiusTypeOrSphere
-        >::type m_radius;
+    radius_type m_radius;
 };
 
 

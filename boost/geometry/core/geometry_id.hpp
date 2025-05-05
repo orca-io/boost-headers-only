@@ -3,6 +3,7 @@
 // Copyright (c) 2007-2012 Barend Gehrels, Amsterdam, the Netherlands.
 // Copyright (c) 2008-2012 Bruno Lalande, Paris, France.
 // Copyright (c) 2009-2012 Mateusz Loskot, London, UK.
+// Copyright (c) 2024 Adam Wulkiewicz, Lodz, Poland.
 
 // This file was modified by Oracle on 2020.
 // Modifications copyright (c) 2020 Oracle and/or its affiliates.
@@ -45,39 +46,43 @@ struct geometry_id
 
 
 template <>
-struct geometry_id<point_tag>            : std::integral_constant<int, 1> {};
+struct geometry_id<point_tag>               : std::integral_constant<int, 1> {};
 
 
 template <>
-struct geometry_id<linestring_tag>       : std::integral_constant<int, 2> {};
+struct geometry_id<linestring_tag>          : std::integral_constant<int, 2> {};
 
 
 template <>
-struct geometry_id<polygon_tag>          : std::integral_constant<int, 3> {};
+struct geometry_id<polygon_tag>             : std::integral_constant<int, 3> {};
 
 
 template <>
-struct geometry_id<multi_point_tag>      : std::integral_constant<int, 4> {};
+struct geometry_id<multi_point_tag>         : std::integral_constant<int, 4> {};
 
 
 template <>
-struct geometry_id<multi_linestring_tag> : std::integral_constant<int, 5> {};
+struct geometry_id<multi_linestring_tag>    : std::integral_constant<int, 5> {};
 
 
 template <>
-struct geometry_id<multi_polygon_tag>    : std::integral_constant<int, 6> {};
+struct geometry_id<multi_polygon_tag>       : std::integral_constant<int, 6> {};
 
 
 template <>
-struct geometry_id<segment_tag>          : std::integral_constant<int, 92> {};
+struct geometry_id<geometry_collection_tag> : std::integral_constant<int, 7> {};
 
 
 template <>
-struct geometry_id<ring_tag>             : std::integral_constant<int, 93> {};
+struct geometry_id<segment_tag>             : std::integral_constant<int, 92> {};
 
 
 template <>
-struct geometry_id<box_tag>              : std::integral_constant<int, 94> {};
+struct geometry_id<ring_tag>                : std::integral_constant<int, 93> {};
+
+
+template <>
+struct geometry_id<box_tag>                 : std::integral_constant<int, 94> {};
 
 
 } // namespace core_dispatch
@@ -95,8 +100,14 @@ struct geometry_id<box_tag>              : std::integral_constant<int, 94> {};
 \ingroup core
 */
 template <typename Geometry>
-struct geometry_id : core_dispatch::geometry_id<typename tag<Geometry>::type>
+struct geometry_id : core_dispatch::geometry_id<tag_t<Geometry>>
 {};
+
+
+#ifndef BOOST_NO_CXX17_INLINE_VARIABLES
+template <typename GeometryTag>
+inline constexpr int geometry_id_v = geometry_id<GeometryTag>::value;
+#endif
 
 
 }} // namespace boost::geometry

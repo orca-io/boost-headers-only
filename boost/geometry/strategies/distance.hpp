@@ -4,8 +4,8 @@
 // Copyright (c) 2008-2014 Bruno Lalande, Paris, France.
 // Copyright (c) 2009-2014 Mateusz Loskot, London, UK.
 
-// This file was modified by Oracle on 2014-2020.
-// Modifications copyright (c) 2014-2020, Oracle and/or its affiliates.
+// This file was modified by Oracle on 2014-2021.
+// Modifications copyright (c) 2014-2021, Oracle and/or its affiliates.
 // Contributed and/or modified by Menelaos Karavelas, on behalf of Oracle
 // Contributed and/or modified by Adam Wulkiewicz, on behalf of Oracle
 
@@ -33,7 +33,12 @@ namespace strategy { namespace distance { namespace services
 {
 
 
-template <typename Strategy> struct tag {};
+template <typename Strategy> struct tag
+{
+    BOOST_GEOMETRY_STATIC_ASSERT_FALSE(
+        "Not implemented for this Strategy.",
+        Strategy);
+};
 
 template <typename Strategy, typename P1, typename P2>
 struct return_type
@@ -89,8 +94,8 @@ template
     typename GeometryTag2,
     typename Point1,
     typename Point2 = Point1,
-    typename CsTag1 = typename cs_tag<Point1>::type,
-    typename CsTag2 = typename cs_tag<Point2>::type,
+    typename CsTag1 = cs_tag_t<Point1>,
+    typename CsTag2 = cs_tag_t<Point2>,
     typename UnderlyingStrategy = void
 >
 struct default_strategy

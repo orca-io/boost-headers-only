@@ -18,7 +18,8 @@
 
 #include <boost/geometry/strategies/covered_by.hpp>
 #include <boost/geometry/strategies/default_strategy.hpp>
-#include <boost/geometry/strategies/relate.hpp>
+
+#include <boost/geometry/strategy/relate.hpp>
 
 
 namespace boost { namespace geometry { namespace strategy { namespace disjoint
@@ -32,12 +33,12 @@ template
 <
     typename Geometry1,
     typename Geometry2,
-    typename Tag1 = typename geometry::tag<Geometry1>::type,
-    typename Tag2 = typename geometry::tag<Geometry2>::type,
+    typename Tag1 = tag_t<Geometry1>,
+    typename Tag2 = tag_t<Geometry2>,
     int TopDim1 = geometry::topological_dimension<Geometry1>::value,
     int TopDim2 = geometry::topological_dimension<Geometry2>::value,
-    typename CsTag1 = typename cs_tag<Geometry1>::type,
-    typename CsTag2 = typename cs_tag<Geometry2>::type
+    typename CsTag1 = cs_tag_t<Geometry1>,
+    typename CsTag2 = cs_tag_t<Geometry2>
 >
 struct default_strategy
     : relate::services::default_strategy
@@ -60,7 +61,7 @@ template <typename MultiPoint, typename Box>
 struct default_strategy<MultiPoint, Box, multi_point_tag, box_tag, 0, 2>
     : strategy::covered_by::services::default_strategy
         <
-            typename point_type<MultiPoint>::type,
+            point_type_t<MultiPoint>,
             Box
         >
 {};
@@ -69,7 +70,7 @@ template <typename Box, typename MultiPoint>
 struct default_strategy<Box, MultiPoint, box_tag, multi_point_tag, 2, 0>
     : strategy::covered_by::services::default_strategy
         <
-            typename point_type<MultiPoint>::type,
+            point_type_t<MultiPoint>,
             Box
         >
 {};

@@ -118,6 +118,9 @@ struct multi_polygon_tag : multi_tag, polygonal_tag {};
 /// OGC Geometry Collection identifying tag
 struct geometry_collection_tag : multi_tag {};
 
+/// Tag identifying dynamic geometries, e.g. variants
+struct dynamic_geometry_tag {};
+
 
 /*!
 \brief Meta-function to get for a tag of a multi-geometry
@@ -132,22 +135,25 @@ struct single_tag_of
 template <>
 struct single_tag_of<multi_point_tag>
 {
-    typedef point_tag type;
+    using type = point_tag;
 };
 
 template <>
 struct single_tag_of<multi_linestring_tag>
 {
-    typedef linestring_tag type;
+    using type = linestring_tag;
 };
 
 template <>
 struct single_tag_of<multi_polygon_tag>
 {
-    typedef polygon_tag type;
+    using type = polygon_tag;
 };
 
 #endif
+
+template <typename Tag>
+using single_tag_of_t = typename single_tag_of<Tag>::type;
 
 
 }} // namespace boost::geometry

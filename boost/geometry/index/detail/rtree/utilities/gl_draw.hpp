@@ -4,8 +4,8 @@
 //
 // Copyright (c) 2011-2013 Adam Wulkiewicz, Lodz, Poland.
 //
-// This file was modified by Oracle on 2019-2020.
-// Modifications copyright (c) 2019-2020 Oracle and/or its affiliates.
+// This file was modified by Oracle on 2019-2021.
+// Modifications copyright (c) 2019-2021 Oracle and/or its affiliates.
 // Contributed and/or modified by Adam Wulkiewicz, on behalf of Oracle
 //
 // Use, modification and distribution is subject to the Boost Software License,
@@ -15,7 +15,16 @@
 #ifndef BOOST_GEOMETRY_INDEX_DETAIL_RTREE_UTILITIES_GL_DRAW_HPP
 #define BOOST_GEOMETRY_INDEX_DETAIL_RTREE_UTILITIES_GL_DRAW_HPP
 
+#include <limits>
+
+#include <boost/geometry/core/access.hpp>
+#include <boost/geometry/core/coordinate_dimension.hpp>
+#include <boost/geometry/core/coordinate_type.hpp>
 #include <boost/geometry/core/static_assert.hpp>
+#include <boost/geometry/core/tag.hpp>
+#include <boost/geometry/core/tags.hpp>
+
+#include <boost/geometry/index/detail/rtree/node/node_elements.hpp>
 
 namespace boost { namespace geometry { namespace index { namespace detail {
 
@@ -30,10 +39,10 @@ struct gl_draw_point
 template <typename Point>
 struct gl_draw_point<Point, 2>
 {
-    static inline void apply(Point const& p, typename coordinate_type<Point>::type z)
+    static inline void apply(Point const& p, coordinate_type_t<Point> z)
     {
-        typename coordinate_type<Point>::type const& x = geometry::get<0>(p);
-        typename coordinate_type<Point>::type const& y = geometry::get<1>(p);
+        coordinate_type_t<Point> const& x = geometry::get<0>(p);
+        coordinate_type_t<Point> const& y = geometry::get<1>(p);
         /*glBegin(GL_POINT);
         glVertex3f(x, y, z);
         glEnd();*/
@@ -53,7 +62,7 @@ struct gl_draw_box
 template <typename Box>
 struct gl_draw_box<Box, 2>
 {
-    static inline void apply(Box const& b, typename coordinate_type<Box>::type z)
+    static inline void apply(Box const& b, coordinate_type_t<Box> z)
     {
         glBegin(GL_LINE_LOOP);
         glVertex3f(geometry::get<min_corner, 0>(b), geometry::get<min_corner, 1>(b), z);
@@ -71,7 +80,7 @@ struct gl_draw_segment
 template <typename Segment>
 struct gl_draw_segment<Segment, 2>
 {
-    static inline void apply(Segment const& s, typename coordinate_type<Segment>::type z)
+    static inline void apply(Segment const& s, coordinate_type_t<Segment> z)
     {
         glBegin(GL_LINES);
         glVertex3f(geometry::get<0, 0>(s), geometry::get<0, 1>(s), z);
@@ -106,12 +115,13 @@ struct gl_draw_indexable<Segment, segment_tag>
 } // namespace dispatch
 
 template <typename Indexable> inline
-void gl_draw_indexable(Indexable const& i, typename coordinate_type<Indexable>::type z)
+void gl_draw_indexable(Indexable const& i, coordinate_type_t<Indexable> z)
 {
-    dispatch::gl_draw_indexable<
-        Indexable,
-        typename tag<Indexable>::type
-    >::apply(i, z);
+    dispatch::gl_draw_indexable
+        <
+            Indexable,
+            tag_t<Indexable>
+        >::apply(i, z);
 }
 
 } // namespace utilities
@@ -133,7 +143,7 @@ struct gl_draw
     inline gl_draw(translator_type const& t,
                    size_t level_first = 0,
                    size_t level_last = (std::numeric_limits<size_t>::max)(),
-                   typename coordinate_type<box_type>::type z_coord_level_multiplier = 1
+                   coordinate_type_t<box_type> z_coord_level_multiplier = 1
     )
         : tr(t)
         , level_f(level_first)
@@ -172,7 +182,7 @@ struct gl_draw
                 detail::utilities::gl_draw_indexable(it->first, level_rel * z_mul);
             }
         }
-        
+
         size_t level_backup = level;
         ++level;
 
@@ -210,7 +220,7 @@ struct gl_draw
     translator_type const& tr;
     size_t level_f;
     size_t level_l;
-    typename coordinate_type<box_type>::type z_mul;
+    coordinate_type_t<box_type> z_mul;
 
     size_t level;
 };
@@ -221,9 +231,7 @@ template <typename Rtree> inline
 void gl_draw(Rtree const& tree,
              size_t level_first = 0,
              size_t level_last = (std::numeric_limits<size_t>::max)(),
-             typename coordinate_type<
-                    typename Rtree::bounds_type
-                >::type z_coord_level_multiplier = 1
+             coordinate_type_t<typename Rtree::bounds_type> z_coord_level_multiplier = 1
              )
 {
     typedef utilities::view<Rtree> RTV;

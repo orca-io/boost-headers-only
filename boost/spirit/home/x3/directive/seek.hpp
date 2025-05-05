@@ -1,6 +1,8 @@
 /*=============================================================================
     Copyright (c) 2011 Jamboree
     Copyright (c) 2014 Lee Clagett
+    Copyright (c) 2017 wanghan02
+    Copyright (c) 2024 Nana Sakisaka
 
     Distributed under the Boost Software License, Version 1.0. (See accompanying
     file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -9,6 +11,7 @@
 #define BOOST_SPIRIT_X3_SEEK_APRIL_13_2014_1920PM
 
 #include <boost/spirit/home/x3/core/parser.hpp>
+#include <boost/spirit/home/x3/support/expectation.hpp>
 
 namespace boost { namespace spirit { namespace x3
 {
@@ -28,25 +31,25 @@ namespace boost { namespace spirit { namespace x3
             Iterator& first, Iterator const& last
           , Context const& context, RContext& rcontext, Attribute& attr) const
         {
-            Iterator current(first);
-            for (/**/; current != last; ++current)
+            for (Iterator current(first);; ++current)
             {
                 if (this->subject.parse(current, last, context, rcontext, attr))
                 {
                     first = current;
                     return true;
                 }
-            }
 
-            // Test for when subjects match on input empty. Example:
-            //     comment = "//" >> seek[eol | eoi]
-            if (this->subject.parse(current, last, context, rcontext, attr))
-            {
-                first = current;
-                return true;
-            }
+            #if !BOOST_SPIRIT_X3_THROW_EXPECTATION_FAILURE
+                if (has_expectation_failure(context))
+                {
+                    return false;
+                }
+            #endif
 
-            return false;
+                // fail only after subject fails & no input
+                if (current == last)
+                    return false;
+            }
         }
     };
 

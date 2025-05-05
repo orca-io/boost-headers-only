@@ -5,8 +5,8 @@
 // Copyright (c) 2009-2014 Mateusz Loskot, London, UK.
 // Copyright (c) 2013-2014 Adam Wulkiewicz, Lodz, Poland.
 
-// This file was modified by Oracle on 2013-2020.
-// Modifications copyright (c) 2013-2020, Oracle and/or its affiliates.
+// This file was modified by Oracle on 2013-2021.
+// Modifications copyright (c) 2013-2021, Oracle and/or its affiliates.
 
 // Contributed and/or modified by Vissarion Fysikopoulos, on behalf of Oracle
 // Contributed and/or modified by Menelaos Karavelas, on behalf of Oracle
@@ -33,7 +33,6 @@
 #include <boost/geometry/algorithms/detail/envelope/segment.hpp>
 #include <boost/geometry/algorithms/detail/normalize.hpp>
 #include <boost/geometry/algorithms/dispatch/disjoint.hpp>
-#include <boost/geometry/algorithms/envelope.hpp>
 
 #include <boost/geometry/formulas/vertex_longitude.hpp>
 
@@ -85,8 +84,7 @@ struct disjoint_segment_box_sphere_or_spheroid
                              DisjointPointBoxStrategy const& disjoint_point_box_strategy,
                              DisjointBoxBoxStrategy const& disjoint_box_box_strategy)
     {
-        typedef typename point_type<Segment>::type segment_point;
-        segment_point vertex;
+        point_type_t<Segment> vertex;
         return apply(segment, box, vertex,
                      azimuth_strategy,
                      normalize_strategy,
@@ -113,13 +111,13 @@ struct disjoint_segment_box_sphere_or_spheroid
     {
         assert_dimension_equal<Segment, Box>();
 
-        typedef typename point_type<Segment>::type segment_point_type;
+        using segment_point_type = point_type_t<Segment>;
 
         segment_point_type p0, p1;
         geometry::detail::assign_point_from_index<0>(segment, p0);
         geometry::detail::assign_point_from_index<1>(segment, p1);
 
-        //vertex not computed here
+        // Vertex is not computed here
         disjoint_info disjoint_return_value = disjoint_info::disjoint_no_vertex;
 
         // Simplest cases first
@@ -133,17 +131,17 @@ struct disjoint_segment_box_sphere_or_spheroid
 
         // Case 2: disjoint if bounding boxes are disjoint
 
-        typedef typename coordinate_type<segment_point_type>::type CT;
+        using coor_t = coordinate_type_t<segment_point_type>;
 
         segment_point_type p0_normalized;
         NormalizeStrategy::apply(p0, p0_normalized);
         segment_point_type p1_normalized;
         NormalizeStrategy::apply(p1, p1_normalized);
 
-        CT lon1 = geometry::get_as_radian<0>(p0_normalized);
-        CT lat1 = geometry::get_as_radian<1>(p0_normalized);
-        CT lon2 = geometry::get_as_radian<0>(p1_normalized);
-        CT lat2 = geometry::get_as_radian<1>(p1_normalized);
+        coor_t lon1 = geometry::get_as_radian<0>(p0_normalized);
+        coor_t lat1 = geometry::get_as_radian<1>(p0_normalized);
+        coor_t lon2 = geometry::get_as_radian<0>(p1_normalized);
+        coor_t lat2 = geometry::get_as_radian<1>(p1_normalized);
 
         if (lon1 > lon2)
         {
@@ -168,12 +166,12 @@ struct disjoint_segment_box_sphere_or_spheroid
 
         // Case 3: test intersection by comparing angles
 
-        CT alp1, a_b0, a_b1, a_b2, a_b3;
+        coor_t alp1, a_b0, a_b1, a_b2, a_b3;
 
-        CT b_lon_min = geometry::get_as_radian<geometry::min_corner, 0>(box);
-        CT b_lat_min = geometry::get_as_radian<geometry::min_corner, 1>(box);
-        CT b_lon_max = geometry::get_as_radian<geometry::max_corner, 0>(box);
-        CT b_lat_max = geometry::get_as_radian<geometry::max_corner, 1>(box);
+        coor_t b_lon_min = geometry::get_as_radian<geometry::min_corner, 0>(box);
+        coor_t b_lat_min = geometry::get_as_radian<geometry::min_corner, 1>(box);
+        coor_t b_lon_max = geometry::get_as_radian<geometry::max_corner, 0>(box);
+        coor_t b_lat_max = geometry::get_as_radian<geometry::max_corner, 1>(box);
 
         azimuth_strategy.apply(lon1, lat1, lon2, lat2, alp1);
         azimuth_strategy.apply(lon1, lat1, b_lon_min, b_lat_min, a_b0);
@@ -181,12 +179,31 @@ struct disjoint_segment_box_sphere_or_spheroid
         azimuth_strategy.apply(lon1, lat1, b_lon_min, b_lat_max, a_b2);
         azimuth_strategy.apply(lon1, lat1, b_lon_max, b_lat_max, a_b3);
 
-        bool b0 = formula::azimuth_side_value(alp1, a_b0) > 0;
-        bool b1 = formula::azimuth_side_value(alp1, a_b1) > 0;
-        bool b2 = formula::azimuth_side_value(alp1, a_b2) > 0;
-        bool b3 = formula::azimuth_side_value(alp1, a_b3) > 0;
+        int s0 = formula::azimuth_side_value(alp1, a_b0);
+        int s1 = formula::azimuth_side_value(alp1, a_b1);
+        int s2 = formula::azimuth_side_value(alp1, a_b2);
+        int s3 = formula::azimuth_side_value(alp1, a_b3);
 
-        if (!(b0 && b1 && b2 && b3) && (b0 || b1 || b2 || b3))
+        if (s0 == 0 || s1 == 0 || s2 == 0 || s3 == 0)
+        {
+            return disjoint_info::intersect;
+        }
+
+        bool s0_positive = s0 > 0;
+        bool s1_positive = s1 > 0;
+        bool s2_positive = s2 > 0;
+        bool s3_positive = s3 > 0;
+
+        bool all_positive = s0_positive && s1_positive && s2_positive && s3_positive;
+        bool all_non_positive = !(s0_positive || s1_positive || s2_positive || s3_positive);
+        bool vertex_north = lat1 + lat2 > 0;
+
+        if ((all_positive && vertex_north) || (all_non_positive && !vertex_north))
+        {
+            return disjoint_info::disjoint_no_vertex;
+        }
+
+        if (!all_positive && !all_non_positive)
         {
             return disjoint_info::intersect;
         }
@@ -195,15 +212,14 @@ struct disjoint_segment_box_sphere_or_spheroid
         // points of the box are above (below) the segment in northern (southern)
         // hemisphere. Then we have to compute the vertex of the segment
 
-        CT vertex_lat;
-        CT lat_sum = lat1 + lat2;
+        coor_t vertex_lat;
 
-        if ((lat1 < b_lat_min && lat_sum > CT(0))
-                || (lat1 > b_lat_max && lat_sum < CT(0)))
+        if ((lat1 < b_lat_min && vertex_north)
+                || (lat1 > b_lat_max && !vertex_north))
         {
-            CT b_lat_below; //latitude of box closest to equator
+            coor_t b_lat_below; //latitude of box closest to equator
 
-            if (lat_sum > CT(0))
+            if (vertex_north)
             {
                 vertex_lat = geometry::get_as_radian<geometry::max_corner, 1>(box_seg);
                 b_lat_below = b_lat_min;
@@ -214,7 +230,7 @@ struct disjoint_segment_box_sphere_or_spheroid
 
             //optimization TODO: computing the spherical longitude should suffice for
             // the majority of cases
-            CT vertex_lon = geometry::formula::vertex_longitude<CT, CS_Tag>
+            coor_t vertex_lon = geometry::formula::vertex_longitude<coor_t, CS_Tag>
                                     ::apply(lon1, lat1,
                                             lon2, lat2,
                                             vertex_lat,
@@ -247,7 +263,7 @@ struct disjoint_segment_box
                              Box const& box,
                              Strategy const& strategy)
     {
-        return strategy.apply(segment, box);
+        return strategy.disjoint(segment, box).apply(segment, box);
     }
 };
 

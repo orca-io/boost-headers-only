@@ -1,6 +1,8 @@
 // Boost.Geometry
 
-// Copyright (c) 2020, Oracle and/or its affiliates.
+// Copyright (c) 2025 Adam Wulkiewicz, Lodz, Poland.
+
+// Copyright (c) 2020-2021, Oracle and/or its affiliates.
 
 // Contributed and/or modified by Adam Wulkiewicz, on behalf of Oracle
 
@@ -12,14 +14,25 @@
 
 
 #include <boost/geometry/strategies/area/geographic.hpp>
+#include <boost/geometry/strategies/azimuth/geographic.hpp>
+#include <boost/geometry/strategies/buffer/geographic.hpp>
+#include <boost/geometry/strategies/centroid/geographic.hpp>
+#include <boost/geometry/strategies/closest_points/geographic.hpp>
+#include <boost/geometry/strategies/convex_hull/geographic.hpp>
+#include <boost/geometry/strategies/distance/geographic.hpp>
 #include <boost/geometry/strategies/envelope/geographic.hpp>
 #include <boost/geometry/strategies/expand/geographic.hpp>
+#include <boost/geometry/strategies/io/geographic.hpp>
+#include <boost/geometry/strategies/index/geographic.hpp>
+#include <boost/geometry/strategies/is_convex/geographic.hpp>
+#include <boost/geometry/strategies/relate/geographic.hpp>
+#include <boost/geometry/strategies/simplify/geographic.hpp>
 
 
 namespace boost { namespace geometry
 {
 
-    
+
 namespace strategies
 {
 
@@ -27,98 +40,34 @@ namespace strategies
 template
 <
     typename FormulaPolicy = strategy::andoyer,
-    std::size_t SeriesOrder = strategy::default_order<FormulaPolicy>::value,
     typename Spheroid = srs::spheroid<double>,
     typename CalculationType = void
 >
-class geographic : strategies::detail::geographic_base<Spheroid>
+class geographic
+    // derived from the umbrella strategy defining the most strategies
+    : public strategies::closest_points::geographic<FormulaPolicy, Spheroid, CalculationType>
+    , public strategies::centroid::detail::geographic
 {
-    using base_t = strategies::detail::geographic_base<Spheroid>;
+    using base_t = strategies::closest_points::geographic<FormulaPolicy, Spheroid, CalculationType>;
 
 public:
-    geographic()
-        : base_t()
-    {}
+    geographic() = default;
 
     explicit geographic(Spheroid const& spheroid)
         : base_t(spheroid)
     {}
 
-    // area
-
-    template <typename Geometry>
-    auto area(Geometry const&) const
+    auto azimuth() const
     {
-        return strategy::area::geographic
-            <
-                FormulaPolicy, SeriesOrder, Spheroid, CalculationType
-            >(base_t::m_spheroid);
-    }
-
-    // envelope
-
-    template <typename Geometry, typename Box>
-    static auto envelope(Geometry const&, Box const&,
-                         typename util::enable_if_point_t<Geometry> * = nullptr)
-    {
-        return strategy::envelope::spherical_point();
-    }
-
-    template <typename Geometry, typename Box>
-    static auto envelope(Geometry const&, Box const&,
-                         typename util::enable_if_multi_point_t<Geometry> * = nullptr)
-    {
-        return strategy::envelope::spherical_multipoint();
-    }
-
-    template <typename Geometry, typename Box>
-    static auto envelope(Geometry const&, Box const&,
-                         typename util::enable_if_box_t<Geometry> * = nullptr)
-    {
-        return strategy::envelope::spherical_box();
-    }
-
-    template <typename Geometry, typename Box>
-    auto envelope(Geometry const&, Box const&,
-                  typename util::enable_if_segment_t<Geometry> * = nullptr) const
-    {
-        return strategy::envelope::geographic_segment
+        return strategy::azimuth::geographic
             <
                 FormulaPolicy, Spheroid, CalculationType
             >(base_t::m_spheroid);
     }
 
-    template <typename Geometry, typename Box>
-    auto envelope(Geometry const&, Box const&,
-                  typename util::enable_if_polysegmental_t<Geometry> * = nullptr) const
+    auto point_order() const
     {
-        return strategy::envelope::geographic
-            <
-                FormulaPolicy, Spheroid, CalculationType
-            >(base_t::m_spheroid);
-    }
-
-    // expand
-
-    template <typename Box, typename Geometry>
-    static auto expand(Box const&, Geometry const&,
-                       typename util::enable_if_point_t<Geometry> * = nullptr)
-    {
-        return strategy::expand::spherical_point();
-    }
-
-    template <typename Box, typename Geometry>
-    static auto expand(Box const&, Geometry const&,
-                       typename util::enable_if_box_t<Geometry> * = nullptr)
-    {
-        return strategy::expand::spherical_box();
-    }
-
-    template <typename Box, typename Geometry>
-    auto expand(Box const&, Geometry const&,
-                typename util::enable_if_segment_t<Geometry> * = nullptr) const
-    {
-        return strategy::expand::geographic_segment
+        return strategy::point_order::geographic
             <
                 FormulaPolicy, Spheroid, CalculationType
             >(base_t::m_spheroid);
